@@ -418,8 +418,7 @@ func parsePrice(raw string) (float64, error) {
 		return 0, fmt.Errorf("no price in %q", raw)
 	}
 
-	match = strings.ReplaceAll(match, ".", "")
-	match = strings.ReplaceAll(match, ",", ".")
+	match = normalizeDecimal(match)
 
 	var value float64
 	_, err := fmt.Sscanf(match, "%f", &value)
@@ -427,6 +426,31 @@ func parsePrice(raw string) (float64, error) {
 		return 0, err
 	}
 	return value, nil
+}
+
+func normalizeDecimal(value string) string {
+	value = strings.ReplaceAll(value, " ", "")
+	value = strings.ReplaceAll(value, "\u00a0", "")
+
+	lastDot := strings.LastIndex(value, ".")
+	lastComma := strings.LastIndex(value, ",")
+
+	switch {
+	case lastDot >= 0 && lastComma >= 0:
+		if lastDot > lastComma {
+			value = strings.ReplaceAll(value, ",", "")
+		} else {
+			value = strings.ReplaceAll(value, ".", "")
+			value = strings.ReplaceAll(value, ",", ".")
+		}
+	case lastComma >= 0:
+		value = strings.ReplaceAll(value, ".", "")
+		value = strings.ReplaceAll(value, ",", ".")
+	case lastDot >= 0:
+		value = strings.ReplaceAll(value, ",", "")
+	}
+
+	return value
 }
 
 func printResults(results []priceResult) {
